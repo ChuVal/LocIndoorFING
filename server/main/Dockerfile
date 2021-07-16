@@ -1,4 +1,4 @@
-FROM golang:latest
+FROM golang:1.15
 
 RUN go get -u -v github.com/schollz/find3/...; exit 0
 RUN go get github.com/lib/pq

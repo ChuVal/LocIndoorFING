@@ -10,7 +10,8 @@ import (
 )
 
 func S3Upload(key string, file_path string) (err error) {
-	bucket_name := os.Getenv("AWS_BUCKET")
+	//bucket_name := os.Getenv("AWS_BUCKET")
+	bucket_name := "indoor"
 
 	log.Println("Uploading " + key + " to bucket " + bucket_name)
 
@@ -33,7 +34,7 @@ func S3Upload(key string, file_path string) (err error) {
 		if aerr, ok := err.(awserr.Error); ok {
 			switch aerr.Code() {
 			default:
-				log.Fatal("error in s3 put object: ", aerr)
+				log.Fatal("error in s3 put object (1): ", aerr)
 			}
 		} else {
 			// Print the error, cast err to awserr.Error to get the Code and

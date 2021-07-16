@@ -19,7 +19,7 @@ services:
       - "ai:ai"
     ports:
       - "80:8005"
-    env_file: ./server/main/.env
+    env_file: ./server/main/main.env
   ai:
     container_name: ai
     build: ./server/ai
@@ -28,6 +28,16 @@ services:
       - ./server/ai:/app
     networks:
       - find3-network
-    env_file: ./server/ai/.env
+    env_file: ./server/ai/ai.env
     ports:
       - "8002:8002"
+  info_api:
+    container_name: info_api
+    build: ./information_api
+    restart: always
+    volumes:
+      - ./information_api:/app
+    networks:
+      - find3-network
+    ports:
+      - "8003:8003"

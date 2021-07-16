@@ -37,7 +37,7 @@ def to_base58(family):
 @app.route('/classify', methods=['POST'])
 def classify():
     t = time.time()
-
+    logger.debug("en classify server")
     payload = request.get_json()
     if payload is None:
         return jsonify({'success': False, 'message': 'must provide sensor data'})
@@ -45,27 +45,28 @@ def classify():
     if 'sensor_data' not in payload:
         return jsonify({'success': False, 'message': 'must provide sensor data'})
 
-    fname = to_base58(payload['sensor_data']['f']) + ".ai"
-
-    ai = ai_cache.get(payload['sensor_data']['f'])
+    fname = to_base58(payload['sensor_data'][0]['f']) + ".ai"
+    logger.debug(fname)
+    ai = ai_cache.get(payload['sensor_data'][0]['f'])
     if ai is None:
-        ai = AI(to_base58(payload['sensor_data']['f']))
-        logger.debug("loading {}".format(fname))
-        try:
+       ai = AI(to_base58(payload['sensor_data'][0]['f']))
+       logger.debug("loading {}".format(fname))
+       try:
             ai.load(fname)
-        except Exception:
+       except Exception:
             return jsonify({"success": False, "message": "could not find '{p}'".format(p=fname)})
-        ai_cache[payload['sensor_data']['f']] = ai
+       ai_cache[payload['sensor_data'][0]['f']] = ai
 
     classified = ai.classify(payload['sensor_data'])
 
     logger.debug("classifed for {} {:d} ms".format(
-        payload['sensor_data']['f'], int(1000 * (t - time.time()))))
+        payload['sensor_data'][0]['f'], int(1000 * (t - time.time()))))
     return jsonify({"success": True, "message": "data analyzed", 'analysis': classified})
 
 
 @app.route('/learn', methods=['POST'])
 def learn():
+    logger.debug("en learn server")
     payload = request.get_json()
     family = 'posifi'
     if payload is None:

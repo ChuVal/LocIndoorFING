@@ -21,7 +21,7 @@ import (
 )
 
 // Port defines the public port
-var Port = "8003"
+var Port = "8005"
 var UseSSL = false
 var UseMQTT = false
 var MinimumPassive = -1
@@ -341,6 +341,7 @@ func Run() (err error) {
 		r.GET("/api/v1/mqtt/:family", handlerMQTT) // handler for setting MQTT
 	}
 	r.POST("/data", handlerData)             // typical data handler
+	r.POST("/Crowdsourcing", handlerDataCrowd)             // Crowdsourcing data handler
 	r.POST("/classify", handlerDataClassify) // classify a fingerprint
 	r.POST("/passive", handlerReverse)       // typical data handler
 	r.POST("/learn", handlerFIND)            // backwards-compatible with FIND for learning
@@ -524,11 +525,15 @@ func handlerApiV1Location(c *gin.Context) {
 			return
 		}
 		s, err = d.GetLatest(device)
-		d.Close()
+	        d.Close()
 		if err != nil {
 			return
 		}
 		analysis, err = api.AnalyzeSensorData(s)
+	//         a, err := d.GetPrediction(s.Timestamp)
+	//	  analysis.Guesses = a
+	//	  d.Close()
+
 		if err != nil {
 			err = api.Calibrate(family, true)
 			if err != nil {
@@ -536,6 +541,8 @@ func handlerApiV1Location(c *gin.Context) {
 				return
 			}
 		}
+	//	analysis.Guesses = a 
+	//	d.close()
 		return
 	}(c)
 	if err != nil {
@@ -672,6 +679,44 @@ func handlerData(c *gin.Context) {
 
 		// process data
 		err = processSensorData(d, justSave)
+		if err != nil {
+			message = d.Family
+			return
+		}
+		message = "inserted data"
+
+		logger.Log.Debugf("[%s] /data %+v", d.Family, d)
+		return
+	}(c)
+
+	if err != nil {
+		logger.Log.Debugf("[%s] problem parsing: %s", message, err.Error())
+		c.JSON(http.StatusOK, gin.H{"message": err.Error(), "success": false})
+	} else {
+		c.JSON(http.StatusOK, gin.H{"message": message, "success": true})
+	}
+}
+
+func handlerDataCrowd(c *gin.Context) {
+	message, err := func(c *gin.Context) (message string, err error) {
+		justSave := c.DefaultQuery("justsave", "0") == "1"
+		var d models.SensorData
+		err = c.BindJSON(&d)
+		if err != nil {
+			message = d.Family
+			err = errors.Wrap(err, "problem binding data")
+			return
+		}
+
+		err = d.Validate()
+		if err != nil {
+			message = d.Family
+			err = errors.Wrap(err, "problem validating data")
+			return
+		}
+
+		// process data
+		err = processSensorDataCrowd(d, justSave)
 		if err != nil {
 			message = d.Family
 			return
@@ -1003,9 +1048,36 @@ func processSensorData(p models.SensorData, justSave ...bool) (err error) {
 		return
 	}
 	go sendOutData(p)
+//	err = api.SaveSensorData(p)
+//	        if err != nil {
+//			                return
+//					        }
+//
+//						        if len(justSave) > 0 && justSave[0] {
+//								                return
+//										        }
 	return
 }
+func processSensorDataCrowd(p models.SensorData, justSave ...bool) (err error) {
+	err = api.SaveSensorData(p)
+	if err != nil {
+		return
+	}
 
+	if len(justSave) > 0 && justSave[0] {
+		return
+	}
+	//go sendOutData(p)
+//	err = api.SaveSensorData(p)
+//	        if err != nil {
+//			                return
+//					        }
+//
+//						        if len(justSave) > 0 && justSave[0] {
+//								                return
+//										        }
+	return
+}
 func sendOutData(p models.SensorData) (analysis models.LocationAnalysis, err error) {
 	analysis, _ = api.AnalyzeSensorData(p)
 	if len(analysis.Guesses) == 0 {

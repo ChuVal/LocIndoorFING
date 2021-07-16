@@ -7,6 +7,7 @@ S3_CLIENT = boto3.session.Session().client('s3')
 
 # The name of the bucket on S3
 BUCKET_NAME = os.environ.get('AWS_BUCKET')
+#BUCKET_NAME = 'indoor'
 
 
 def get_file(key):

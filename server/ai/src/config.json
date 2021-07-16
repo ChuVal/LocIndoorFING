@@ -1,0 +1,120 @@
+{
+	"data": {
+		"filename": "HuellasPiso1.csv",
+		"tipo_data":"truncado",
+		"sequence_length": 10,
+		"split_T": 0.80,
+        "split_V": 0.05,
+		"dato_faltante": -100,
+		"huellas_zona": 6
+	},
+	"Aps": {
+		"listaAps": "APSPiso1.csv",
+		"listaAntel": "macantel.csv",
+		"listaFing": "macs.txt",
+		"descartamos": 50
+	},
+	"training": {
+		"epochs": 100,
+		"batch_size": 20
+	},
+	"model_clas": {
+		"loss": "mae",
+		"optimizer": "adam",
+		"layers": [
+			{
+				"type": "lstm",
+				"neurons": 100,
+				"input_timesteps": 20,
+				"input_dim": 50,
+				"return_seq": true
+			},
+			{
+				"type": "dropout",
+				"rate": 0.2
+			},
+			{
+				"type": "lstm",
+				"neurons": 100,
+				"return_seq": true
+			},
+			{
+				"type": "dropout",
+				"rate": 0.2
+			},
+			{
+				"type": "TimeDistributed",
+				"output_layer": 1
+			}
+		]
+	},
+	"model_mimo": {
+		"optimizer": "adam",
+		"layers": [
+			{
+				"type": "lstm",
+				"neurons": 100,
+				"input_timesteps": 15,
+				"input_dim": 28,
+				"return_seq": true
+			},
+			{
+				"type": "dropout",
+				"rate": 0.2
+			},
+			{
+				"type": "lstm",
+				"neurons": 100,
+				"return_seq": true
+			},
+			{
+				"type": "dropout",
+				"rate": 0.2
+			},
+			{
+				"type": "TimeDistributed",
+				"output_layer": 2
+			}
+		]
+	},
+	"model_Pmimo": {
+		"optimizer": "adam",
+		"layers": [
+			{
+				"type": "lstm",
+				"neurons": 100,
+				"input_timesteps": 20,
+				"input_dim": 50,
+				"return_seq": true
+			},
+			{
+				"type": "dropout",
+				"rate": 0.2
+			},
+			{
+				"type": "lstm",
+				"neurons": 100,
+				"return_seq": true
+			},
+			{
+				"type": "dropout",
+				"rate": 0.2
+			},
+			{
+				"type": "TimeDistributed",
+				"output_layer": 1
+			}
+		]
+	},
+	"trajectory": {
+		"PR": 88,
+		"PR_Columna": 5,
+		"PR_Fila": 18,
+		"Distancia": 2,
+		"dmax": 2.8,
+		"vmax": 2,
+        "delta_T": 0.4,
+        "T":20,
+        "cantidad":10000
+	}
+}

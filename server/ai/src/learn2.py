@@ -83,19 +83,18 @@ class AI(object):
         self.logger = logging.getLogger('learn.AI')
         self.naming = {'from': {}, 'to': {}}
         self.family = 'posifi'
-        #self.ai = AI()
-        #self.ai.learn("TrainM11.csv")
+        
 
     def classify(self, sensor_data):
         self.logger.debug(sensor_data)
         #header = self.header[1:]
         datos = pd.read_csv('TrainM11.csv')
         header = list(datos.columns[0:67])
-        #self.logger.debug(header)
+        self.logger.debug(header)
         is_unknown = True
-        lista_Ap = pd.read_csv("Listado_Aps12000.csv")
+        lista_Ap = pd.read_csv("Listado_ApsA.csv")
         step = len(sensor_data)
-        #self.logger.debug(step)
+        self.logger.debug(step)
         #Filra los Ap detectados que no están en los Aps de entrenamiento
         csv_data = numpy.zeros((step,len(header)))
         for huella in range(len(sensor_data)):
@@ -109,49 +108,33 @@ class AI(object):
                             is_unknown = False
                             csv_data[huella][header.index(sensorName)] = sensor_data[huella]["s"][sensorType][sensor]
                                                                                                                                                                                                                                                                                                                  
-        #self.logger.debug("filtro")
-        #self.logger.debug(csv_data)
+        self.logger.debug("filtro")
+        self.logger.debug(csv_data)
         self.headerClassify = header
-        #self.logger.debug("tamaño")
-        #self.logger.debug(csv_data.shape)
+        self.logger.debug("tamaño")
+        self.logger.debug(csv_data.shape)
         #self.csv_dataClassify = csv_data.reshape(1, -1)
         csv_dataClassify = csv_data
         payload = {'location_names': self.naming['to'], 'predictions': []}
 
         threads = [None]*len(self.algorithms)
         self.results = [None]*len(self.algorithms)
-        #self.logger.debug(self.algorithms.keys())
-        #for i, alg in enumerate(self.algorithms.keys()):
-        threads[0] = Thread(target=self.do_classification, args=(0, "LSTM",step,csv_dataClassify,header))
-        threads[0].start()
+        self.logger.debug(self.algorithms.keys())
+        for i, alg in enumerate(self.algorithms.keys()):
+            threads[i] = Thread(target=self.do_classification, args=(i, alg,step,csv_dataClassify))
+            threads[i].start()
 
-        #for i, _ in enumerate(self.algorithms.keys()):
-        threads[0].join()
+        for i, _ in enumerate(self.algorithms.keys()):
+            threads[i].join()
 
         for result in self.results:
             if result != None:
                 payload['predictions'].append(result)
         payload['is_unknown'] = is_unknown
-        #self.logger.debug("ultimo")
-        #self.logger.debug(self.algorithms.keys())
-        #self.logger.debug("fin clasiffy")
+        self.logger.debug("fin clasiffy")
         return payload
-
-    def minmax_norm(self, df, maximo, minimo):  
-        df_minmax_norm = (df - minimo) / (maximo - minimo)    
-        return df_minmax_norm
-
-    def normaliza (self, step, Train, datos, header):
-        
-        df = pd.DataFrame(datos)
-        pasos_norm = numpy.zeros((step,67))
-        for j in range(len(header)):
-            if header[j] in Train.columns:
-                maximo = max(Train[header[j]])
-                minimo = min(Train[header[j]])
-            pasos_norm[:,step-j] = self.minmax_norm(df[j], maximo, minimo)
-                                                    
-        return pasos_norm
+    
+     
 
     def coord_zona(self, coord):
         if (coord[1] < 2):
@@ -184,79 +167,67 @@ class AI(object):
         
         return col1
 
-    def do_classification(self, index, name,step,csv_dataClassify,header):
+    def do_classification(self, index, name,step,csv_dataClassify):
         t = time.time()
-        pasos = np.empty([step,csv_dataClassify.shape[1]])
-        #self.logger.debug("dentro de do")
-        #self.logger.debug(pasos.shape)
+        pasos = np.empty([15,67])
+        self.logger.debug("dentro de do")
+        self.logger.debug(pasos.shape)
         try:
             if name == "LSTM":
                 
                 self.logger.debug("LSTM")
-               # for h in range(step):
-               #     csv_dataClassify[h][csv_dataClassify[h] == 0] = -100
-               #     huella = csv_dataClassify[h]
-               #     huella = huella.reshape(67,1)
-               #     min_max_scaler = MinMaxScaler()
-               #     x_scaled = min_max_scaler.fit_transform(huella)
-               #     huella = x_scaled.reshape(1,67)
-               #     pasos[step-1-h] = huella
-
-                Huellas_Train = pd.read_csv('data/Huellas_sNorm.csv')
-                csv_dataClassify[csv_dataClassify == 0] = -100
-                pasos = self.normaliza(step,Huellas_Train,csv_dataClassify,header)
-               # self.logger.debug(pasos)
-
+                for h in range(15):
+                    csv_dataClassify[h][csv_dataClassify[h] == 0] = -100
+                    huella = csv_dataClassify[h]
+                    huella = huella.reshape(67,1)
+                    min_max_scaler = MinMaxScaler()
+                    x_scaled = min_max_scaler.fit_transform(huella)
+                    huella = x_scaled.reshape(1,67)
+                    pasos[15-1-h] = huella
 
                 if (step == 15):
                     pasos = pasos.reshape(1,step,67)
                     model_new = load_model('DLRNN_M11.h5', compile = False)
-                    pred1 = model_new.predict(pasos)
-                    prediccion = pred1[1]
-                   # self.logger.debug(prediccion)
-                   # self.logger.debug(prediccion.shape)
-                   # self.logger.debug(type(prediccion))
+                    pred = model_new.predict(pasos)
+                    prediccion = pred[1]
+                    self.logger.debug(prediccion)
+                    self.logger.debug(prediccion.shape)
+                    self.logger.debug(type(prediccion))
                 else:
-                    #self.logger.debug("en el else")
+                    self.logger.debug("en el else")
                     pasos2 = np.empty([15,67])
                     for i in range(15):
-                        pasos2[i] = pasos[0]
+                        pasos2[i] = huella
                     pasos2 = pasos2.reshape(1,15,67)
-                    model_new= load_model.predict('DLRNN_M11.h5', compile = False)
-                    pred1 = model_new(pasos2)
-                    prediccion = pred1[1]
+                    model_new= load_model('DLRNN_M11.h5', compile = False)
+
+                    pred = model_new.predict(pasos2)
+                    prediccion = pred[1]
                 
-                self.logger.debug("Prediciión en coordenadas")
-                self.logger.debug(prediccion) 
+                self.logger.debug("llego")
+                self.logger.debug(prediccion[0,1,:]) 
                 pred_zona=np.zeros([prediccion.shape[0],prediccion.shape[1]])
-                
+                print(pred_zona.shape)
                 for i in range(prediccion.shape[0]):
                     for j in range(prediccion.shape[1]):
                         zona = self.coord_zona(prediccion[i,j,:])
                         pred_zona[i,j] = zona
-                #self.logger.debug(type(pred1))
-                #self.logger.debug(type(prediccion))  
-                #self.logger.debug(type(pred_zona))
-                prediction =pred_zona.tolist()
-                #self.logger.debug(type(prediction))
-                #self.logger.debug(prediction)
-                #self.logger.debug("predicciones en zona")
+                
+                
+                prediction = pred_zona
+                self.logger.debug(prediccion)
             
             else:
                 prediction = self.algorithms[name].predict_proba(csv_dataClassify)
         except Exception as e:
-            self.logger.debug("Entro a Except")
+            self.logger.debug("entro a except")
             logger.error(csv_dataClassify)
             logger.error(str(e))
             return
         
         predict = {}
         if name == "LSTM":
-            #a = np.int(str(prediction[0][14]))
-            a = np.int(prediction[0][14]+1)
-        
-            self.logger.debug("Predicción en Zona")
-            self.logger.debug(prediction[0][14]+1)
+            a = np.int(prediction[0][14])
             prediction = np.zeros([1,90])
             for i in range(90):
                 if (a == i):
@@ -328,7 +299,7 @@ class AI(object):
 
 
     def learn(self, fname):
-        self.logger.debug("ESTOY EN LA FUNCION LEARN")
+        self.logger.debug("dentro LEARN")
         self.model = Model()
         t = time.time()
         configs = json.load(open('config.json', 'r'))

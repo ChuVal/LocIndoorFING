@@ -53,6 +53,14 @@ func (d *Database) MakeTables() (err error) {
 		logger.Log.Error(err)
 		return
 	}
+	sqlStmt = `create table Crowdsourcing (timestamp numeric(20,0) not null primary key, deviceid text, locationid text, unique(timestamp));`
+	_, err = d.db.Exec(sqlStmt)
+	if err != nil {
+		err = errors.Wrap(err, "MakeTables")
+		logger.Log.Error(err)
+		return
+	}
+	
 	sqlStmt = `CREATE TABLE location_predictions (timestamp numeric(20,0) NOT NULL PRIMARY KEY, prediction TEXT, UNIQUE(timestamp));`
 	_, err = d.db.Exec(sqlStmt)
 	if err != nil {
@@ -211,7 +219,7 @@ func (d *Database) AddPrediction(timestamp int64, aidata []models.LocationPredic
 		return errors.Wrap(err, "stmt AddPrediction")
 	}
 	defer stmt.Close()
-
+    logger.Log.Debugf("prediccionbasedatos",string(b))
 	_, err = stmt.Exec(timestamp, string(b), string(b))
 	if err != nil {
 		return errors.Wrap(err, "exec AddPrediction")
@@ -408,6 +416,34 @@ func (d *Database) GetLastSensorTimestamp() (timestamp int64, err error) {
 	}
 	return
 }
+
+
+
+
+// GetLatest will return a sensor data for classifying
+func (d *Database) GetLatest15(device string) (s []models.SensorData, err error) {
+		deviceID, err := d.GetID("devices", device)
+			if err != nil {
+			   return
+			}
+      var sensors []models.SensorData
+      sensors, err = d.GetAllFromPreparedQuery("SELECT * FROM sensors WHERE deviceID=$1 ORDER BY timestamp DESC LIMIT 15", deviceID)
+      if err != nil {
+	      //logger.Log.Debugf("sensores hay erroro ",s, len(s)) 
+	      return
+      }
+		s = sensors
+  // logger.Log.Debugf("sensores  ",s, len(s))															//if len(sensors) > 0 {
+																//	s = sensors[0]
+																	//} else {
+																		//	err = errors.New("no rows found")
+																			//}
+																				return
+																			}
+
+
+
+
 
 // Get will retrieve the value associated with a key.
 func (d *Database) TotalLearnedCount() (count int64, err error) {
@@ -892,7 +928,9 @@ func Open(family string, readOnly ...bool) (d *Database, err error) {
 	d = new(Database)
 	d.family = "posifi"
 
-	connStr := os.Getenv("POSTGRESQL_CONN_STRING")
+	//connStr := os.Getenv("POSTGRESQL_CONN_STRING")
+        connStr :="postgres://locindoor:locindoor@locindoordb.crpbxtr1a9mb.us-east-2.rds.amazonaws.com/locindoor"
+
 
 	// open sqlite3 database
 	d.db, err = sql.Open("postgres", connStr)

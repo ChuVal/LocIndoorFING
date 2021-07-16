@@ -32,7 +32,7 @@ const (
 // init HTTPClient
 func init() {
 	httpClient = createHTTPClient()
-	routeCache = cache.New(5*time.Minute, 10*time.Minute)
+	routeCache = cache.New(10*time.Minute, 20*time.Minute)
 }
 
 // createHTTPClient for connection re-use
@@ -56,6 +56,18 @@ type AnalysisResponse struct {
 func AnalyzeSensorData(s models.SensorData) (aidata models.LocationAnalysis, err error) {
 	startAnalyze := time.Now()
 
+	logger.Log.Debugf("entroooo ")
+		d1, err := database.Open(s.Family)
+				if err != nil {
+								return
+										}
+										z1, err := d1.GetLatest15(s.Device)
+									 //logger.Log.Debugf("como es z y s ",z1,s)
+												    	d1.Close()
+															if err != nil {
+																			return
+																					}
+
 	aidata.Guesses = []models.LocationPrediction{}
 	aidata.LocationNames = make(map[string]string)
 
@@ -69,14 +81,15 @@ func AnalyzeSensorData(s models.SensorData) (aidata models.LocationAnalysis, err
 		aiTime := time.Now()
 		var target AnalysisResponse
 		type ClassifyPayload struct {
-			Sensor     models.SensorData `json:"sensor_data"`
+			Sensor []models.SensorData `json:"sensor_data"`
 			DataFolder string            `json:"data_folder"`
 		}
 		var p2 ClassifyPayload
-		p2.Sensor = s
+		p2.Sensor = z1
 		p2.DataFolder = DataFolder
 		url := "http://ai:" + AIPort + "/classify"
 		bPayload, err := json.Marshal(p2)
+		//logger.Log.Debugf("como es bPayload ",bPayload)
 		if err != nil {
 			err = errors.Wrap(err, "problem marshaling data")
 			aChan <- a{err: err}
@@ -148,6 +161,7 @@ func AnalyzeSensorData(s models.SensorData) (aidata models.LocationAnalysis, err
 	}
 	aidata = aResult.aidata
 
+	logger.Log.Debugf("prediccion 11111",aidata.Predictions[0].Locations[0])
 	reverseLocationNames := make(map[string]string)
 	for key, value := range aidata.LocationNames {
 		reverseLocationNames[value] = key
@@ -192,8 +206,17 @@ func AnalyzeSensorData(s models.SensorData) (aidata models.LocationAnalysis, err
 	var algorithmEfficacy map[string]map[string]models.BinaryStats
 	d.Get("AlgorithmEfficacy", &algorithmEfficacy)
 	d.Close()
-	aidata.Guesses = determineBestGuess(aidata, algorithmEfficacy)
-
+	//aidata.Guesses = determineBestGuess(aidata, algorithmEfficacy)
+	//aidata.LocationNames[prediction.Locations[i]]
+	aidata.Guesses = []models.LocationPrediction{
+			{
+				Location:    aidata.Predictions[0].Locations[0],
+				Probability: 1,
+			},
+		}
+    //aidata.Guesses.Location = aidata.Predictions[0].Locations[0]
+	//aidata.Guesses.Probability=1
+	logger.Log.Debugf("prediccion dos",aidata.Guesses)
 	if aidata.IsUnknown {
 		aidata.Guesses = []models.LocationPrediction{
 			{
@@ -211,6 +234,7 @@ func AnalyzeSensorData(s models.SensorData) (aidata models.LocationAnalysis, err
 			return
 		}
 		defer d.Close()
+		logger.Log.Debugf("prediccion dos",aidata.Guesses)
 		errInsert := d.AddPrediction(s.Timestamp, aidata.Guesses)
 		if errInsert != nil {
 			logger.Log.Errorf("[%s] problem inserting: %s", s.Family, errInsert.Error())
@@ -236,7 +260,7 @@ func determineBestGuess(aidata models.LocationAnalysis, algorithmEfficacy map[st
 			if len(guessedLocation) == 0 {
 				continue
 			}
-			efficacy := prediction.Probabilities[i] * algorithmEfficacy[prediction.Name][guessedLocation].Informedness
+			efficacy := prediction.Probabilities[i] * 1 // algorithmEfficacy[prediction.Name][guessedLocation].Informedness
 			if _, ok := locationScores[guessedLocation]; !ok {
 				locationScores[guessedLocation] = float64(0)
 			}

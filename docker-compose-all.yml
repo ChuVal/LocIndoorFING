@@ -20,6 +20,7 @@ services:
     ports:
       - "8005:8005"
     env_file: ./server/main/.env
+    max-size: "5m"
   ai:
     container_name: ai
     build: ./server/ai
@@ -31,6 +32,7 @@ services:
     env_file: ./server/ai/.env
     ports:
       - "8002:8002"
+    max-size: "5m"    
   info_api:
     container_name: info_api
     build: ./information_api

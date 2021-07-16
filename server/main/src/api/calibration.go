@@ -147,8 +147,10 @@ func learnFromData(family string, datas []models.SensorData) (err error) {
 	}
 	defer os.Remove(csv_path)
 
+	
 	S3Upload(p.CSVFile, csv_path)
-
+         
+	
 	url := "http://ai:" + AIPort + "/learn"
 	bPayload, err := json.Marshal(p)
 	if err != nil {

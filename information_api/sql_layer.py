@@ -1,7 +1,9 @@
 import os
 import psycopg2
 
-conn_str = os.environ.get('POSTGRESQL_CONN_STRING')
+#conn_str = os.environ.get('POSTGRESQL_CONN_STRING')
+conn_str = "postgres://locindoor:locindoor@locindoordb.crpbxtr1a9mb.us-east-2.rds.amazonaws.com/locindoor"
+
 
 db_connection = psycopg2.connect(conn_str)
 
