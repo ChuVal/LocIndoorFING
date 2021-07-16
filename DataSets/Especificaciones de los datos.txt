@@ -1,0 +1,19 @@
+Conjunto de datos 1 - relevamiento 1
+	Tomados con FIND3
+	Huellas1
+	Listado_Aps1
+
+Conjunto de datos 2 - relevamiento 2
+	Tomados con posifi_scanner
+	Huellas2
+	Listado_Aps2
+
+Conjunto de datos 3 - relevamiento3
+	Tomados con posifi_scanner
+	Huellas3
+	Listado_Aps3
+
+Conjunto de datos 4 - relevamiento 4 (UTILIZADO)
+	Tomados con posifi_scanner
+	Huellas4
+	Listado_Aps4
